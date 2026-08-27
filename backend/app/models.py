@@ -161,6 +161,10 @@ class ExecucaoAlocacao(Base):
     restricoes_violadas: Mapped[int] = mapped_column(Integer, nullable=False)
     ocupacao_prevista: Mapped[str] = mapped_column(String(10), nullable=False)
     duracao_ms: Mapped[float] = mapped_column(Float, nullable=False)
+    # Execuções que falharam também ficam registradas: é o que torna o card
+    # "erros ocorridos" do monitoramento um número real, e não um zero fixo.
+    status: Mapped[str] = mapped_column(String(20), nullable=False, default="concluida")
+    erro: Mapped[str | None] = mapped_column(String(500), nullable=True)
     # Pesos vigentes na execução: permite reinterpretar uma decisão antiga
     # mesmo depois de a função de score ter sido recalibrada.
     pesos: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
@@ -170,6 +174,9 @@ class ExecucaoAlocacao(Base):
         back_populates="execucao", cascade="all, delete-orphan"
     )
     alertas: Mapped[list["AlertaAlocacao"]] = relationship(
+        back_populates="execucao", cascade="all, delete-orphan"
+    )
+    intervencoes: Mapped[list["IntervencaoManual"]] = relationship(
         back_populates="execucao", cascade="all, delete-orphan"
     )
 
@@ -210,3 +217,30 @@ class AlertaAlocacao(Base):
     encaminhamento: Mapped[str] = mapped_column(String(400), nullable=False)
 
     execucao: Mapped["ExecucaoAlocacao"] = relationship(back_populates="alertas")
+
+
+class IntervencaoManual(Base):
+    """Trilha de auditoria da intervenção humana.
+
+    A spec exige registrar "quem, quando, o que mudou". Sem esta tabela, uma
+    alocação editada à mão seria indistinguível de uma recomendação do motor —
+    e a governança perderia justamente o que ela existe para provar.
+    """
+
+    __tablename__ = "intervencoes_manuais"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    execucao_id: Mapped[int] = mapped_column(
+        ForeignKey("execucoes_alocacao.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    alocacao_id: Mapped[int | None] = mapped_column(
+        ForeignKey("alocacoes.id", ondelete="SET NULL"), nullable=True
+    )
+    acao: Mapped[str] = mapped_column(String(20), nullable=False)
+    usuario: Mapped[str] = mapped_column(String(120), nullable=False)
+    timestamp: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    justificativa: Mapped[str | None] = mapped_column(String(400), nullable=True)
+    # {"de": {...}, "para": {...}, "avisos": [...]}
+    detalhe: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
+
+    execucao: Mapped["ExecucaoAlocacao"] = relationship(back_populates="intervencoes")
