@@ -85,7 +85,7 @@ def _validar_referencias_do_parametro(db: Session, dados: RestricaoCreate) -> No
         andares = _lista_de_ids(p, "andares")
         if not andares or any(not 1 <= a <= 9 for a in andares):
             raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                 detail="'andares' deve conter ao menos um andar entre 1 e 9.",
             )
 
@@ -94,7 +94,7 @@ def _lista_de_ids(parametro: dict, chave: str) -> list[int]:
     valor = parametro.get(chave)
     if not isinstance(valor, list) or not all(isinstance(v, int) for v in valor):
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=f"'{chave}' deve ser uma lista de inteiros.",
         )
     return valor
