@@ -61,10 +61,22 @@ ENCAMINHAMENTOS = {
 }
 
 
-def otimizar(cenario: Cenario, usuario: str = "coordenador-geral") -> ResultadoAlocacao:
-    """Executa uma otimização completa e devolve o resultado explicável."""
+def otimizar(
+    cenario: Cenario,
+    usuario: str = "coordenador-geral",
+    fixacoes: dict[int, int] | None = None,
+) -> ResultadoAlocacao:
+    """Executa uma otimização completa e devolve o resultado explicável.
+
+    `fixacoes` mapeia equipe_id -> sala_id que devem ser preservados como
+    estão. É o que sustenta a re-otimização depois de intervenção humana: as
+    decisões que o coordenador já aceitou ou editou saem do grafo, e o motor
+    reotimiza apenas o que sobrou. Sem fixações (o caso normal, e o usado
+    pelos testes metamórficos) o comportamento é exatamente o de antes.
+    """
     inicio = perf_counter()
     indice = IndiceRestricoes(cenario.restricoes)
+    fixacoes = _fixacoes_validas(fixacoes, cenario)
 
     salas_por_id = {s.id: s for s in cenario.salas}
     equipes_por_id = {e.id: e for e in cenario.equipes}
@@ -82,10 +94,15 @@ def otimizar(cenario: Cenario, usuario: str = "coordenador-geral") -> ResultadoA
     }
     viaveis_ids = {eid: {s.id for s in lista} for eid, lista in viaveis.items()}
 
+    # Equipes e salas fixadas saem do problema: o emparelhamento roda só sobre
+    # o que ainda está em aberto.
+    salas_fixadas = set(fixacoes.values())
+    livres = [e for e in cenario.equipes if e.id not in fixacoes]
+
     # Ordem determinística: prioridade, depois equipes maiores (mais difíceis
     # de acomodar), depois id como desempate final.
     ordem = sorted(
-        (e.id for e in cenario.equipes),
+        (e.id for e in livres),
         key=lambda eid: (
             -PESO_PRIORIDADE.get(equipes_por_id[eid].prioridade, 2),
             -equipes_por_id[eid].quantidade_funcionarios,
@@ -93,14 +110,21 @@ def otimizar(cenario: Cenario, usuario: str = "coordenador-geral") -> ResultadoA
         ),
     )
 
-    adjacencia = {eid: [s.id for s in viaveis[eid]] for eid in viaveis}
+    adjacencia = {
+        e.id: [s.id for s in viaveis[e.id] if s.id not in salas_fixadas] for e in livres
+    }
     atribuicao = emparelhamento_maximo(adjacencia, ordem)
 
     total_alocado_otimo = len(atribuicao)
-    atribuicao = _busca_local(atribuicao, cenario, indice, viaveis, viaveis_ids, andares)
+    atribuicao = _busca_local(
+        atribuicao, cenario, indice, viaveis, viaveis_ids, andares, salas_fixadas
+    )
     assert len(atribuicao) == total_alocado_otimo, (
         "A busca local reduziu o número de equipes alocadas — invariante violada."
     )
+    # As fixações voltam ao conjunto só depois da busca local, para que ela
+    # jamais as mova.
+    atribuicao.update(fixacoes)
 
     recomendacoes = _montar_recomendacoes(
         atribuicao, indice, viaveis, salas_por_id, equipes_por_id, andares
@@ -114,7 +138,7 @@ def otimizar(cenario: Cenario, usuario: str = "coordenador-geral") -> ResultadoA
     ]
 
     metricas_depois = _metricas(atribuicao, cenario, indice)
-    metricas_antes = _metricas(_atribuicao_atual(cenario), cenario, indice)
+    metricas_antes = _metricas(atribuicao_atual(cenario), cenario, indice)
     duracao_ms = (perf_counter() - inicio) * 1000
 
     governanca = RegistroGovernanca(
@@ -150,15 +174,24 @@ def _busca_local(
     viaveis: dict[int, list[SalaEntrada]],
     viaveis_ids: dict[int, set[int]],
     andares: dict[int, int | None],
+    salas_fixadas: set[int],
 ) -> dict[int, int]:
     """Melhora a qualidade mantendo o número de equipes alocadas.
 
     Só usa dois movimentos — mover para sala livre e trocar duas equipes de
     sala — e ambos preservam a cardinalidade por construção. É daí que vem a
     invariante verificada no `assert` do chamador.
+
+    `salas_fixadas` são salas travadas por decisão humana: continuam listadas
+    como viáveis para outras equipes, então precisam ser excluídas aqui
+    explicitamente, senão a busca local as roubaria.
     """
-    atribuicao = _melhorar_separavel(atribuicao, cenario, viaveis, viaveis_ids, andares)
-    return _reparar_acoplamento(atribuicao, cenario, indice, viaveis, viaveis_ids)
+    atribuicao = _melhorar_separavel(
+        atribuicao, cenario, viaveis, viaveis_ids, andares, salas_fixadas
+    )
+    return _reparar_acoplamento(
+        atribuicao, cenario, indice, viaveis, viaveis_ids, salas_fixadas
+    )
 
 
 def _melhorar_separavel(
@@ -167,6 +200,7 @@ def _melhorar_separavel(
     viaveis: dict[int, list[SalaEntrada]],
     viaveis_ids: dict[int, set[int]],
     andares: dict[int, int | None],
+    salas_fixadas: set[int],
 ) -> dict[int, int]:
     """Fase A — otimiza a parte do score que depende só do par (equipe, sala).
 
@@ -187,7 +221,7 @@ def _melhorar_separavel(
             base = score_par(equipes[eid], salas[sala_atual], andares.get(eid)) * peso[eid]
 
             for sala in viaveis[eid]:
-                if sala.id == sala_atual:
+                if sala.id == sala_atual or sala.id in salas_fixadas:
                     continue
                 outro = ocupante.get(sala.id)
 
@@ -234,6 +268,7 @@ def _reparar_acoplamento(
     indice: IndiceRestricoes,
     viaveis: dict[int, list[SalaEntrada]],
     viaveis_ids: dict[int, set[int]],
+    salas_fixadas: set[int],
 ) -> dict[int, int]:
     """Fase B — tenta desfazer violações de restrições de acoplamento.
 
@@ -259,7 +294,7 @@ def _reparar_acoplamento(
             ocupante = {sala_id: dono for dono, sala_id in atribuicao.items()}
 
             for sala in viaveis[eid]:
-                if sala.id == origem:
+                if sala.id == origem or sala.id in salas_fixadas:
                     continue
                 tentativas += 1
 
@@ -480,10 +515,11 @@ def _metricas(
     )
 
 
-def _atribuicao_atual(cenario: Cenario) -> dict[int, int]:
+def atribuicao_atual(cenario: Cenario) -> dict[int, int]:
     """Arranjo vigente antes da otimização, lido de `sala_atual_id`.
 
-    É o lado "antes" da tela de comparação. Salas inexistentes são ignoradas.
+    É o lado "antes" da tela de comparação e a base dos indicadores do
+    dashboard. Salas inexistentes são ignoradas.
     """
     validas = {s.id for s in cenario.salas}
     return {
@@ -491,6 +527,41 @@ def _atribuicao_atual(cenario: Cenario) -> dict[int, int]:
         for e in cenario.equipes
         if e.sala_atual_id is not None and e.sala_atual_id in validas
     }
+
+
+def _fixacoes_validas(
+    fixacoes: dict[int, int] | None, cenario: Cenario
+) -> dict[int, int]:
+    """Descarta fixações que apontam para equipe ou sala inexistente.
+
+    Uma fixação pode ter sido gravada numa execução anterior e a entidade
+    removida do cadastro depois. Ignorar em silêncio é melhor que estourar:
+    a re-otimização segue, apenas sem aquela restrição humana.
+
+    Se duas equipes forem fixadas na mesma sala, vence a de menor id — a
+    ocupação exclusiva é inegociável.
+    """
+    if not fixacoes:
+        return {}
+
+    equipes = {e.id: e for e in cenario.equipes}
+    salas = {s.id: s for s in cenario.salas}
+
+    resultado: dict[int, int] = {}
+    salas_usadas: set[int] = set()
+
+    for equipe_id, sala_id in sorted(fixacoes.items()):
+        if equipe_id not in equipes or sala_id not in salas:
+            continue
+        if sala_id in salas_usadas:
+            continue
+        # A regra dura de capacidade vale mesmo para decisão humana.
+        if salas[sala_id].capacidade < equipes[equipe_id].quantidade_funcionarios:
+            continue
+        resultado[equipe_id] = sala_id
+        salas_usadas.add(sala_id)
+
+    return resultado
 
 
 def _recursos_atendidos(
