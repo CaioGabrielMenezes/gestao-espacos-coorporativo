@@ -338,6 +338,95 @@ de ocupação:
 
 ---
 
+## As cinco perguntas da demonstração
+
+### 1. Como o sistema distribuiu os funcionários pelos espaços?
+
+Modelando salas e equipes como um grafo bipartido. As restrições duras eliminam
+as combinações impossíveis, o emparelhamento máximo acha a maior quantidade de
+equipes que cabem simultaneamente, e uma busca local reorganiza o que sobrou
+para melhorar ocupação, preferência de andar e permanência — sem nunca reduzir
+o número de equipes alocadas.
+
+### 2. Por que determinada sala foi recomendada para determinada equipe?
+
+Cada recomendação carrega o número de alternativas avaliadas, o score decomposto
+por critério e uma justificativa que compara com a **segunda melhor opção real**.
+Quando a sala individualmente melhor foi para outra equipe, o texto diz isso e
+explica que ceder aquela sala foi o que permitiu acomodar a outra.
+
+### 3. O que acontece quando não existe solução possível?
+
+O sistema emite um alerta com equipe afetada, restrição não atendida, causa e
+encaminhamento sugerido — e **não aloca**. Nos dados de exemplo, a equipe de
+92 pessoas contra a maior sala de 80 é justamente esse caso, plantado de
+propósito. Forçar uma alocação inválida inflaria o indicador de sucesso e
+esconderia o problema real.
+
+### 4. Como sabemos que uma nova versão não piorou a solução?
+
+Pelos testes metamórficos, que verificam relações que precisam valer
+independentemente da implementação — acrescentar sala nunca reduz alocações,
+remover restrição nunca reduz alocações. Rodam a cada push no CI.
+
+E, mais importante, porque **verificamos que esses testes detectam defeitos
+reais**: quatro mutantes foram injetados de propósito e todos foram pegos. Um
+deles rebaixou o algoritmo para guloso e foi capturado exatamente pela
+propriedade que se previa que um guloso violaria.
+
+### 5. Por que o Coordenador Geral deveria confiar na recomendação?
+
+Não por ser "inteligência artificial" — não há ML aqui, e o motor é uma
+heurística determinística e auditável. A confiança vem de seis mecanismos
+concretos:
+
+| Mecanismo | Onde está |
+|---|---|
+| **Testes** | 489 no backend, incluindo 392 verificações metamórficas |
+| **Critérios de aceitação** | 8 critérios objetivos, cada um com teste executável |
+| **Explicabilidade** | Justificativa comparativa em 100% das recomendações |
+| **Observabilidade** | Tempo, taxa de alocação, violações, intervenções, erros |
+| **Governança** | Registro persistido de cada execução, com os pesos vigentes |
+| **Intervenção humana** | Aceitar, rejeitar, editar e re-otimizar, tudo auditado |
+
+E, sobretudo, porque o sistema **declara o que não sabe fazer**. Ele reporta a
+violação que não conseguiu resolver, avisa quando uma equipe não coube e admite
+que é heurístico na qualidade da distribuição. Um sistema que só mostra sucesso
+não é confiável — é opaco.
+
+---
+
+## Uso de IA no desenvolvimento
+
+O desenvolvimento foi assistido por IA (Claude Code), como o enunciado exige na
+seção 17. A ferramenta escreveu a maior parte do código: implementação do motor,
+testes, telas React, pipeline de CI e esta documentação.
+
+As **decisões de projeto**, no entanto, foram tomadas explicitamente, com
+alternativas comparadas antes de cada escolha. Elas são o que a equipe precisa
+saber defender, e estão registradas com seu porquê:
+
+| Decisão | Alternativa descartada | Por quê |
+|---|---|---|
+| Emparelhamento máximo + busca local | Heurística gulosa; programação linear inteira | O guloso não garante as propriedades metamórficas de monotonicidade — e a verificação por mutação mostrou que ele de fato as viola. A PLI seria ótima, mas opaca justamente onde a explicabilidade é o requisito central |
+| Uma equipe por sala | Compartilhamento de sala | É o modelo dos exemplos do enunciado; compartilhar tornaria o problema um *bin packing* e a explicação muito mais confusa |
+| Restrições duras × de acoplamento | Tratar todas igual | Emparelhamento bipartido não expressa restrição que depende das outras alocações. Separar torna a limitação explícita em vez de escondida |
+| SQLite | PostgreSQL gerenciado | O protótipo não tem requisito de banco remoto; SQLite elimina gestão de segredo, dependência de rede na demonstração e configuração no CI |
+| Sem Machine Learning | Modelo treinado | O problema é de otimização com restrições. ML traria custo de dados, treino e avaliação sem ganho — e tornaria a explicabilidade mais difícil |
+| Pesos do score em dicionário exposto | Constantes no código | Os pesos são o "porquê" das recomendações; ficam inspecionáveis e são gravados em cada execução, permitindo reinterpretar decisões antigas |
+
+Duas evidências de que o código gerado foi revisado, e não aceito no escuro:
+
+**A verificação por mutação.** Injetar defeitos de propósito para confirmar que
+a suíte os detecta só faz sentido para quem não confia cegamente nos próprios
+testes. Ela revelou uma limitação real do critério CA-02, hoje documentada.
+
+**As limitações declaradas.** A seção abaixo lista o que o sistema não faz bem,
+incluindo uma violação de restrição que ele não consegue resolver nos dados de
+exemplo. Nada disso apareceria num trabalho entregue sem leitura crítica.
+
+---
+
 ## Limitações conhecidas
 
 Declaradas de propósito — a disciplina cobra transparência sobre elas.
