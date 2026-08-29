@@ -9,10 +9,23 @@
 import { render } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { vi } from 'vitest'
+import { ProvedorPerfil } from '../perfil'
 
-export function renderizarComRotas(elemento, { rota = '/' } = {}) {
+/**
+ * Renderiza com roteador e provedor de perfil.
+ *
+ * O provedor entra sempre porque as telas leem o perfil para saber o que
+ * mostrar e para registrar quem agiu. Ele busca a lista de setores ao montar e
+ * tolera falha, então testes que não declaram essa rota seguem funcionando.
+ */
+export function renderizarComRotas(elemento, { rota = '/', perfil } = {}) {
+  if (perfil) localStorage.setItem('perfil-atual', JSON.stringify(perfil))
+  else localStorage.removeItem('perfil-atual')
+
   return render(
-    <MemoryRouter initialEntries={[rota]}>{elemento}</MemoryRouter>
+    <MemoryRouter initialEntries={[rota]}>
+      <ProvedorPerfil>{elemento}</ProvedorPerfil>
+    </MemoryRouter>
   )
 }
 
@@ -165,6 +178,41 @@ export const mapaFake = {
           faixa: 'vazia',
         },
       ],
+    },
+  ],
+}
+
+export const indicadoresFake = {
+  origem: 'estado_atual',
+  execucao_id: null,
+  predio: {
+    total_salas: 2,
+    salas_ocupadas: 1,
+    salas_disponiveis: 1,
+    capacidade_total: 60,
+    capacidade_em_uso: 40,
+    capacidade_disponivel: 20,
+    assentos_ociosos: 10,
+    ocupacao_predio_percentual: 50.0,
+    utilizacao_salas_percentual: 50.0,
+    aproveitamento_percentual: 75.0,
+  },
+  pessoas: {
+    total_funcionarios: 30,
+    funcionarios_alocados: 30,
+    funcionarios_nao_alocados: 0,
+  },
+  equipes: { total: 1, alocadas: 1, nao_alocadas: 0, taxa_alocacao_percentual: 100.0 },
+  restricoes_violadas: 0,
+  por_andar: [
+    {
+      andar: 1,
+      salas: 2,
+      salas_ocupadas: 1,
+      salas_disponiveis: 1,
+      capacidade: 60,
+      pessoas: 30,
+      ocupacao_percentual: 50.0,
     },
   ],
 }

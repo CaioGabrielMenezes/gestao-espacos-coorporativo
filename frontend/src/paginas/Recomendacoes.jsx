@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { api, ultimaExecucaoId } from '../api'
 import { Carregando, Erro, Vazio } from '../componentes/Estado'
+import { usarPerfil } from '../perfil'
 
 /**
  * Lista de recomendações com explicabilidade e intervenção humana.
@@ -63,6 +64,9 @@ function Explicabilidade({ dados }) {
 }
 
 export default function Recomendacoes() {
+  // Quem está agindo entra no registro de governança de cada execução e de
+  // cada intervenção — é o que responde "quem executou?" na auditoria.
+  const { usuario } = usarPerfil()
   const [execucao, setExecucao] = useState(null)
   const [salas, setSalas] = useState([])
   const [expandida, setExpandida] = useState(null)
@@ -105,9 +109,9 @@ export default function Recomendacoes() {
     }
   }
 
-  const otimizar = () => executar(() => api.otimizar())
+  const otimizar = () => executar(() => api.otimizar(usuario))
   const reotimizar = () =>
-    executar(() => api.reotimizar(execucao.governanca.execucao_id))
+    executar(() => api.reotimizar(execucao.governanca.execucao_id, usuario))
 
   if (carregando) return <Carregando />
   if (erro) return <Erro mensagem={erro} aoTentarNovamente={carregar} />
@@ -204,14 +208,14 @@ export default function Recomendacoes() {
                   <div className="acoes-intervencao">
                     <button
                       type="button"
-                      onClick={() => executar(() => api.aceitar(r.id))}
+                      onClick={() => executar(() => api.aceitar(r.id, null, usuario))}
                       disabled={ocupado || r.status === 'aceita'}
                     >
                       Aceitar
                     </button>
                     <button
                       type="button"
-                      onClick={() => executar(() => api.rejeitar(r.id))}
+                      onClick={() => executar(() => api.rejeitar(r.id, null, usuario))}
                       disabled={ocupado || r.status === 'rejeitada'}
                     >
                       Rejeitar
@@ -223,7 +227,7 @@ export default function Recomendacoes() {
                         disabled={ocupado}
                         onChange={(evento) => {
                           const salaId = Number(evento.target.value)
-                          if (salaId) executar(() => api.editar(r.id, salaId))
+                          if (salaId) executar(() => api.editar(r.id, salaId, null, usuario))
                         }}
                       >
                         <option value="">escolha uma sala…</option>

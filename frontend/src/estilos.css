@@ -764,3 +764,28 @@ button.perigo:hover {
   font-weight: 600;
   color: var(--tinta);
 }
+
+/* ------------------------------------------------------- seletor de perfil */
+.seletor-perfil {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.82rem;
+  color: var(--tinta-fraca);
+  margin-left: auto;
+}
+
+.seletor-perfil select {
+  font: inherit;
+  font-size: 0.85rem;
+  padding: 0.25rem 0.45rem;
+  border: 1px solid var(--borda);
+  border-radius: var(--raio);
+  background: var(--superficie);
+  color: var(--tinta);
+}
+
+.seletor-perfil select:focus-visible {
+  outline: 2px solid var(--acento);
+  outline-offset: 1px;
+}

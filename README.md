@@ -12,7 +12,7 @@ Trabalho da disciplina de **Qualidade e Testes de Sistemas Baseados em IA**
 |---|---|
 | **Backend** | Python 3.14 · FastAPI · SQLAlchemy · SQLite |
 | **Frontend** | React 19 · Vite · React Router |
-| **Testes** | 489 no backend (pytest) · 46 de componente (Vitest) · 12 end-to-end (Playwright) |
+| **Testes** | 489 no backend (pytest) · 56 de componente (Vitest) · 14 end-to-end (Playwright) |
 | **API** | 34 endpoints, documentados em `/docs` |
 
 ---
@@ -303,6 +303,22 @@ com os dois servidores de pé.
 
 ## Interface
 
+### Os dois níveis de decisão
+
+O enunciado estrutura o sistema em dois papéis (seção 2), e o seletor no topo
+alterna entre eles:
+
+| Papel | O que lhe compete |
+|---|---|
+| **Coordenador Geral** | Administra salas e setores, executa a otimização global, decide sobre as recomendações |
+| **Coordenador de Setor** | Informa as equipes do seu setor e suas restrições; acompanha dashboard, mapa e monitoramento |
+
+**Esta separação é organizacional, não de segurança.** Não há autenticação —
+está fora do escopo do enunciado — então nada impede alguém de chamar a API
+diretamente. O que o perfil faz é dois: mostrar a cada papel apenas o que lhe
+compete, e registrar na governança quem executou cada ação. Tratar isso como
+controle de acesso seria enganoso, e é por isso que está dito aqui.
+
 | Tela | O que mostra |
 |---|---|
 | **Dashboard** | Indicadores do prédio, alternando entre situação atual e proposta |
@@ -454,7 +470,9 @@ real — é a exigência de minimizar movimentação. Os pesos estão em
 `engine/scoring.py` e são gravados em cada execução.
 
 **Sem autenticação**, por estar fora do escopo do enunciado. O campo `usuario`
-da governança é informado pelo cliente.
+da governança é informado pelo cliente, e a separação entre Coordenador Geral e
+Coordenadores de Setor é organizacional: orienta a interface e alimenta a
+auditoria, mas não impede uma chamada direta à API.
 
 **Não usa Machine Learning**, por decisão registrada: o problema é de otimização
 com restrições, e ML traria custo de dados, treino e avaliação sem ganho —

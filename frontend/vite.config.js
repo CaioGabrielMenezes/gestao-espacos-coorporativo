@@ -7,6 +7,9 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     globals: true,
+    // Teto por teste: um laço de redirecionamento trava a renderização, e sem
+    // limite a suíte fica pendurada em vez de acusar o defeito.
+    testTimeout: 10_000,
     setupFiles: './src/testes/preparo.js',
     // Os testes E2E do Playwright vivem em /e2e e têm runner próprio; sem esta
     // exclusão o Vitest tentaria executá-los e falharia na importação.

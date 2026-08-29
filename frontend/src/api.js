@@ -97,20 +97,20 @@ export const api = {
   execucao: (id) => requisitar(`/api/alocacoes/execucoes/${id}`),
   totaisIntervencao: () => requisitar('/api/alocacoes/intervencoes/total'),
 
-  aceitar: (alocacaoId, justificativa) =>
+  aceitar: (alocacaoId, justificativa, usuario) =>
     requisitar(`/api/alocacoes/${alocacaoId}/aceitar`, {
       method: 'POST',
-      ...enviar({ justificativa }),
+      ...enviar({ justificativa, usuario }),
     }),
-  rejeitar: (alocacaoId, justificativa) =>
+  rejeitar: (alocacaoId, justificativa, usuario) =>
     requisitar(`/api/alocacoes/${alocacaoId}/rejeitar`, {
       method: 'POST',
-      ...enviar({ justificativa }),
+      ...enviar({ justificativa, usuario }),
     }),
-  editar: (alocacaoId, salaId, justificativa) =>
+  editar: (alocacaoId, salaId, justificativa, usuario) =>
     requisitar(`/api/alocacoes/${alocacaoId}`, {
       method: 'PUT',
-      ...enviar({ sala_id: salaId, justificativa }),
+      ...enviar({ sala_id: salaId, justificativa, usuario }),
     }),
 
   // ---- Cadastro ---------------------------------------------------------

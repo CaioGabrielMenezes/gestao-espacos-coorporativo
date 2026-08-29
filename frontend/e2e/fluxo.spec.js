@@ -183,3 +183,39 @@ test('backend fora do ar mostra erro tratado, não tela branca', async ({ page }
 
   await expect(page.getByRole('alert')).toContainText(/backend está rodando/)
 })
+
+test('coordenador de setor informa dados sem executar a otimizacao', async ({ page }) => {
+  // Etapa 3 do roteiro de demonstração do enunciado: um Coordenador de Setor
+  // altera a quantidade de funcionários de uma equipe.
+  await page.goto('/dashboard')
+
+  await page.getByLabel(/Atuando como/).selectOption({ label: 'Coordenador · Tecnologia' })
+
+  // Executar a otimização global compete ao Coordenador Geral (seção 2).
+  await expect(page.getByRole('link', { name: 'Recomendações' })).toBeHidden()
+
+  await page.goto('/cadastro/equipes')
+  await expect(page.getByRole('link', { name: 'Salas' })).toBeHidden()
+  await expect(page.getByRole('link', { name: 'Equipes' })).toBeVisible()
+
+  await page.getByRole('button', { name: 'Editar' }).first().click()
+  const quantidade = page.getByLabel(/Funcionários/)
+  await quantidade.fill('37')
+  await page.getByRole('button', { name: 'Salvar alterações' }).click()
+
+  await expect(page.getByRole('cell', { name: '37', exact: true }).first()).toBeVisible()
+})
+
+test('a governanca registra qual perfil executou', async ({ page, request }) => {
+  await page.goto('/dashboard')
+  await page.getByLabel(/Atuando como/).selectOption('geral')
+
+  await page.goto('/recomendacoes')
+  await page.getByRole('button', { name: /Gerar alocação otimizada|Nova otimização/ })
+    .first()
+    .click()
+  await expect(page.locator('.lista-recomendacoes > li').first()).toBeVisible()
+
+  const execucoes = await (await request.get(`${API}/api/alocacoes/execucoes`)).json()
+  expect(execucoes[0].usuario).toBe('coordenador-geral')
+})
