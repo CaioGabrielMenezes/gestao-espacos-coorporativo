@@ -523,3 +523,244 @@ button.primario:hover:not(:disabled) {
   font-size: 0.82rem;
   color: var(--tinta-fraca);
 }
+
+/* ------------------------------------------------------- sub-navegação */
+.sub-abas {
+  display: flex;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+  margin: 1.2rem 0 0.5rem;
+  border-bottom: 1px solid var(--borda);
+}
+
+.sub-abas a {
+  padding: 0.45rem 0.85rem;
+  color: var(--tinta-fraca);
+  text-decoration: none;
+  font-size: 0.9rem;
+  border-bottom: 2px solid transparent;
+}
+
+.sub-abas a:hover {
+  color: var(--tinta);
+}
+
+.sub-abas a.ativo {
+  color: var(--acento);
+  border-bottom-color: var(--acento);
+  font-weight: 600;
+}
+
+/* ------------------------------------------------------------ cadastro */
+.formulario-painel {
+  background: var(--superficie);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio);
+  padding: 1.1rem 1.2rem;
+  margin-bottom: 1.2rem;
+}
+
+.grade-campos {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 0.9rem 1.1rem;
+  margin-bottom: 1rem;
+}
+
+.campo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.28rem;
+}
+
+.campo label {
+  font-size: 0.83rem;
+  font-weight: 600;
+  color: var(--tinta-fraca);
+}
+
+.campo input[type='text'],
+.campo input[type='number'],
+.campo select {
+  padding: 0.45rem 0.55rem;
+  border: 1px solid var(--borda);
+  border-radius: var(--raio);
+  font: inherit;
+  font-size: 0.9rem;
+  background: var(--superficie);
+  color: var(--tinta);
+}
+
+.campo input:focus-visible,
+.campo select:focus-visible {
+  outline: 2px solid var(--acento);
+  outline-offset: 1px;
+}
+
+.campo select[multiple] {
+  padding: 0.25rem;
+}
+
+.campo__dica {
+  font-size: 0.76rem;
+  color: var(--tinta-fraca);
+}
+
+.campo--checkbox {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.45rem;
+  align-self: end;
+  padding-bottom: 0.5rem;
+}
+
+.campo--checkbox label {
+  font-weight: 500;
+  color: var(--tinta);
+}
+
+.formulario-acoes {
+  margin-top: 0.6rem;
+  padding-top: 0.8rem;
+  border-top: 1px solid var(--borda);
+}
+
+.acoes-linha {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.acoes-linha button {
+  font-size: 0.8rem;
+  padding: 0.25rem 0.6rem;
+}
+
+button.perigo {
+  color: var(--ruim);
+  border-color: #e5bcbc;
+}
+
+button.perigo:hover {
+  background: #fbeaea;
+}
+
+/* ---------------------------------------------------------------- mapa */
+.legenda {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1.4rem;
+  padding: 0.7rem 0.9rem;
+  margin: 1rem 0;
+  background: var(--superficie);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio);
+  font-size: 0.82rem;
+}
+
+.legenda li {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.legenda small {
+  color: var(--tinta-fraca);
+}
+
+.amostra {
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  flex-shrink: 0;
+}
+
+.amostra--vazia,
+.sala--vazia {
+  background: #eef1f5;
+}
+.amostra--subutilizada,
+.sala--subutilizada {
+  background: #fdf0d5;
+}
+.amostra--adequada,
+.sala--adequada {
+  background: #d9ecdf;
+}
+.amostra--cheia,
+.sala--cheia {
+  background: #cfe0f3;
+}
+
+.mapa {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.mapa__andar {
+  background: var(--superficie);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio);
+  padding: 0.7rem 0.9rem;
+}
+
+.mapa__rotulo-andar {
+  display: flex;
+  align-items: baseline;
+  gap: 0.7rem;
+  margin-bottom: 0.55rem;
+}
+
+.mapa__rotulo-andar small {
+  color: var(--tinta-fraca);
+  font-size: 0.8rem;
+}
+
+.mapa__salas {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(165px, 1fr));
+  gap: 0.55rem;
+}
+
+.sala {
+  border: 1px solid var(--borda);
+  border-radius: var(--raio);
+  padding: 0.55rem 0.65rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  min-height: 92px;
+}
+
+.sala header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.88rem;
+}
+
+.sala__equipe {
+  margin: 0;
+  flex: 1;
+  font-size: 0.82rem;
+  color: var(--tinta-fraca);
+}
+
+.sala--vazia .sala__equipe {
+  font-style: italic;
+}
+
+.sala footer {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.78rem;
+  color: var(--tinta-fraca);
+}
+
+.sala__percentual {
+  font-weight: 600;
+  color: var(--tinta);
+}

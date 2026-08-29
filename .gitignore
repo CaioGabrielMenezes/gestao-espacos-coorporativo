@@ -11,3 +11,8 @@ dist/
 .claude/
 specs/
 CLAUDE.md
+
+# Artefatos de teste
+test-results/
+playwright-report/
+backend/e2e.db
