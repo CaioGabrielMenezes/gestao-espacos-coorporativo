@@ -414,13 +414,42 @@ não é confiável — é opaco.
 
 ## Uso de IA no desenvolvimento
 
-O desenvolvimento foi assistido por IA (Claude Code), como o enunciado exige na
-seção 17. A ferramenta escreveu a maior parte do código: implementação do motor,
-testes, telas React, pipeline de CI e esta documentação.
+O desenvolvimento foi assistido por **Claude Code** (Anthropic), agente de
+programação executado no terminal, usando o modelo Opus. O uso de IA é
+obrigatório pela seção 17 do enunciado.
 
-As **decisões de projeto**, no entanto, foram tomadas explicitamente, com
-alternativas comparadas antes de cada escolha. Elas são o que a equipe precisa
-saber defender, e estão registradas com seu porquê:
+A ferramenta escreveu a maior parte do código: o motor de alocação, os testes,
+as telas React, o pipeline de CI e esta documentação.
+
+### Como o trabalho foi conduzido
+
+Não foi "pedir o sistema pronto e aceitar o resultado". O método teve quatro
+elementos:
+
+**Um arquivo de contexto do projeto**, lido pelo agente no início de cada
+sessão, com stack, convenções, arquitetura e o histórico das decisões já
+tomadas com seu porquê. É o que impediu o agente de reinventar escolhas ou se
+contradizer entre sessões.
+
+**Uma especificação por funcionalidade**, escrita antes do código, com escopo,
+contrato de API e critérios de aceite. O agente lia a spec antes de
+implementar, e o que ficava fora do escopo ficava fora.
+
+**Pontos de decisão explícitos.** Antes de cada etapa relevante, as alternativas
+eram apresentadas com seus custos e uma era escolhida deliberadamente — o
+algoritmo do motor, o modelo de ocupação, a estratégia de testes, a estrutura
+de navegação. Essas escolhas estão na tabela abaixo.
+
+**Revisão por evidência, não por leitura.** A verificação por mutação existe
+justamente porque ler o código gerado e achar que está certo não é suficiente.
+
+> Os arquivos de contexto e as specs são documentos de trabalho e ficam fora do
+> repositório por decisão da equipe. O que importa para avaliação — decisões,
+> justificativas e limitações — está neste README.
+
+### As decisões que a equipe precisa saber defender
+
+Foram tomadas explicitamente, com alternativas comparadas antes de cada escolha:
 
 | Decisão | Alternativa descartada | Por quê |
 |---|---|---|
@@ -431,15 +460,26 @@ saber defender, e estão registradas com seu porquê:
 | Sem Machine Learning | Modelo treinado | O problema é de otimização com restrições. ML traria custo de dados, treino e avaliação sem ganho — e tornaria a explicabilidade mais difícil |
 | Pesos do score em dicionário exposto | Constantes no código | Os pesos são o "porquê" das recomendações; ficam inspecionáveis e são gravados em cada execução, permitindo reinterpretar decisões antigas |
 
-Duas evidências de que o código gerado foi revisado, e não aceito no escuro:
+### Evidências de que o código gerado foi revisado
+
+Gerar código com IA não transfere a responsabilidade sobre ele. Três coisas
+neste repositório só existem porque o resultado foi questionado:
 
 **A verificação por mutação.** Injetar defeitos de propósito para confirmar que
-a suíte os detecta só faz sentido para quem não confia cegamente nos próprios
-testes. Ela revelou uma limitação real do critério CA-02, hoje documentada.
+a suíte os detecta só faz sentido para quem desconfia dos próprios testes. Ela
+revelou uma limitação real do critério CA-02, hoje documentada no teste.
 
-**As limitações declaradas.** A seção abaixo lista o que o sistema não faz bem,
-incluindo uma violação de restrição que ele não consegue resolver nos dados de
-exemplo. Nada disso apareceria num trabalho entregue sem leitura crítica.
+**As limitações declaradas.** A seção seguinte lista o que o sistema não faz
+bem, incluindo uma restrição que ele não consegue satisfazer nos dados de
+exemplo. Nada disso apareceria num trabalho entregue sem leitura crítica — o
+caminho fácil seria esconder.
+
+**Defeitos encontrados por revisão, não por acaso.** Alguns exemplos do que foi
+corrigido depois de gerado: o cliente da API tratava o erro 422 do FastAPI como
+texto quando ele é uma lista por campo, e toda reprovação de formulário virava
+um inútil "Erro 422"; os campos de horário existiam no cadastro mas nunca
+chegavam ao motor, o que os tornava decorativos; e uma tela de cadastro
+renderizada fora do seu roteamento entrava em laço infinito de redirecionamento.
 
 ---
 
