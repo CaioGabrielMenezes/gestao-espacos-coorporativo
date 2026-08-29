@@ -12,7 +12,7 @@ Trabalho da disciplina de **Qualidade e Testes de Sistemas Baseados em IA**
 |---|---|
 | **Backend** | Python 3.14 · FastAPI · SQLAlchemy · SQLite |
 | **Frontend** | React 19 · Vite · React Router |
-| **Testes** | 464 no backend (pytest) · 43 de componente (Vitest) · 12 end-to-end (Playwright) |
+| **Testes** | 473 no backend (pytest) · 43 de componente (Vitest) · 12 end-to-end (Playwright) |
 | **API** | 34 endpoints, documentados em `/docs` |
 
 ---
@@ -188,7 +188,38 @@ decorativa. O que não se abre mão é do registro.
 
 ---
 
-## Estratégia de testes
+## Critérios de aceitação
+
+Oito critérios objetivos definem quando uma recomendação pode ser considerada
+aceitável. Cada um tem limiar declarado e **um teste automatizado que o
+verifica** — critério em prosa é promessa, critério executável é evidência.
+
+```bash
+cd backend && .venv/Scripts/python -m pytest tests/test_criterios_aceitacao.py -v
+```
+
+O comando acima imprime a lista com o veredito de cada critério.
+
+| # | Critério | Limiar | Teste |
+|---|---|---|---|
+| **CA-01** | Nenhuma sala recebe mais pessoas que sua capacidade | zero ocorrências | `test_ca01_...` |
+| **CA-02** | Nenhuma restrição obrigatória é violada | zero violações | `test_ca02_...` |
+| **CA-03** | Toda recomendação apresenta justificativa completa | 100% | `test_ca03_...` |
+| **CA-04** | Toda equipe sem sala tem causa e encaminhamento | 100% | `test_ca04_...` |
+| **CA-05** | A proposta reduz a ociosidade sem alocar menos equipes | ociosos ↓ **e** alocadas ≥ | `test_ca05_...` |
+| **CA-06** | Tempo de resposta | < 1 s na demonstração · < 5 s em 100×120 | `test_ca06_...` |
+| **CA-07** | Toda execução deixa registro de governança completo | todos os campos preenchidos | `test_ca07_...` |
+| **CA-08** | A mesma entrada produz a mesma recomendação | alocações idênticas | `test_ca08_...` |
+
+Todos vivem em
+[`backend/tests/test_criterios_aceitacao.py`](backend/tests/test_criterios_aceitacao.py),
+um teste por critério.
+
+Dois deles merecem justificativa. **CA-05** exige as duas condições juntas de
+propósito: reduzir a ociosidade deixando equipes de fora não seria melhora,
+seria maquiagem do indicador. **CA-08** parece técnico, mas é o que sustenta a
+auditoria — um sistema que recomenda coisas diferentes para a mesma entrada
+torna impossível reproduzir a decisão que foi justificada.
 
 ### Por que testes metamórficos
 
@@ -227,10 +258,20 @@ injetados de propósito para confirmar que a suíte os detecta:
 |---|---|
 | Regra de capacidade afrouxada (`capacidade * 2`) | 29 falhas na regra dura |
 | Kuhn rebaixado para algoritmo guloso | Detectado pelo **MR2** — exatamente a propriedade que se previa que um guloso violaria |
+| Emparelhamento ignorando o filtro de restrições | Detectado: 7 dos 9 critérios de aceitação acusaram |
+| Regra de capacidade desligada por completo | Detectado pelo **CA-01**, isoladamente (1 falha, 8 aprovações) |
 
 O segundo é a validação empírica da escolha de algoritmo. A mensagem de falha
 apontou os números concretos (7 → 6 equipes alocadas), a restrição responsável e
-o cenário completo. Ambos os mutantes foram revertidos.
+o cenário completo. Todos os mutantes foram revertidos.
+
+O quarto mutante revelou uma **limitação real do CA-02**, que está documentada
+no próprio teste: como ele reavalia as recomendações usando a mesma função de
+restrições que o motor usa, ele detecta defeito no *uso* das restrições, mas não
+detecta defeito *dentro* do avaliador. Essa classe de falha é coberta pelo
+CA-01, que compara números crus da API sem passar por aquela função. Descobrir
+isso foi o objetivo do exercício de mutação — e é a razão de ele não ser
+opcional.
 
 ### Testes de frontend
 
