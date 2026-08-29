@@ -124,6 +124,66 @@ CAMPOS_PARAMETRO: dict[TipoRestricao, tuple[str, ...]] = {
     TipoRestricao.prioridade_equipe: ("nivel",),
 }
 
+# Como cada chave de `parametro` deve ser preenchida. Serve ao endpoint
+# GET /api/restricoes/tipos, que permite ao formulário do frontend se montar a
+# partir do contrato em vez de duplicar estas 8 regras em JavaScript — duas
+# cópias divergiriam na primeira mudança.
+DESCRITOR_CAMPO: dict[str, dict[str, str]] = {
+    "valor": {"tipo": "inteiro", "rotulo": "Capacidade mínima exigida"},
+    "andares": {"tipo": "lista_andares", "rotulo": "Andares permitidos"},
+    "recursos": {"tipo": "lista_texto", "rotulo": "Recursos obrigatórios"},
+    "equipe_ids": {"tipo": "lista_equipes", "rotulo": "Equipes relacionadas"},
+    "setor_ids": {"tipo": "lista_setores", "rotulo": "Setores que não podem dividir"},
+    "setor_id": {"tipo": "setor", "rotulo": "Setor com reserva"},
+    "nivel": {"tipo": "inteiro", "rotulo": "Nível de prioridade (1 = maior)"},
+}
+
+ROTULO_TIPO: dict[TipoRestricao, str] = {
+    TipoRestricao.capacidade_minima: "Capacidade mínima",
+    TipoRestricao.andar_permitido: "Andar permitido",
+    TipoRestricao.acessibilidade_obrigatoria: "Acessibilidade obrigatória",
+    TipoRestricao.equipamento_obrigatorio: "Equipamento obrigatório",
+    TipoRestricao.proximidade_obrigatoria: "Proximidade obrigatória",
+    TipoRestricao.setores_nao_compartilham: "Setores não compartilham área",
+    TipoRestricao.sala_reservada_setor: "Sala reservada a setor",
+    TipoRestricao.prioridade_equipe: "Prioridade da equipe",
+}
+
+
+class CampoParametro(BaseModel):
+    nome: str
+    tipo: str = Field(description="Como o frontend deve renderizar o campo")
+    rotulo: str
+
+
+class TipoRestricaoInfo(BaseModel):
+    """Metadados de um tipo de restrição, para montagem dinâmica do formulário."""
+
+    tipo: TipoRestricao
+    rotulo: str
+    alvo: AlvoRestricao = Field(description="A qual entidade a restrição se aplica")
+    campos: list[CampoParametro]
+
+
+def descrever_tipos_de_restricao() -> list[TipoRestricaoInfo]:
+    """Deriva os metadados das mesmas estruturas que validam a criação.
+
+    Nada aqui é declarado duas vezes: alvo vem de ALVO_POR_TIPO e as chaves de
+    CAMPOS_PARAMETRO, os dois usados pelo validador de RestricaoBase.
+    """
+    return [
+        TipoRestricaoInfo(
+            tipo=tipo,
+            rotulo=ROTULO_TIPO[tipo],
+            alvo=ALVO_POR_TIPO[tipo],
+            campos=[
+                CampoParametro(nome=campo, **DESCRITOR_CAMPO[campo])
+                for campo in CAMPOS_PARAMETRO[tipo]
+            ],
+        )
+        for tipo in TipoRestricao
+    ]
+
 
 class RestricaoBase(BaseModel):
     tipo: TipoRestricao

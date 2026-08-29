@@ -11,10 +11,26 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.enums import TipoRestricao
 from app.models import Equipe, Restricao, Sala, Setor
-from app.schemas import RestricaoCreate, RestricaoRead
+from app.schemas import (
+    RestricaoCreate,
+    RestricaoRead,
+    TipoRestricaoInfo,
+    descrever_tipos_de_restricao,
+)
 from app.utils import obter_ou_404
 
 router = APIRouter(prefix="/api/restricoes", tags=["restricoes"])
+
+
+@router.get("/tipos", response_model=list[TipoRestricaoInfo])
+def listar_tipos_de_restricao():
+    """Metadados dos 8 tipos: alvo e campos exigidos em `parametro`.
+
+    O formulário de restrições do frontend se monta a partir daqui. Sem este
+    endpoint, aquelas regras teriam de ser reescritas em JavaScript e as duas
+    versões divergiriam na primeira mudança do backend.
+    """
+    return descrever_tipos_de_restricao()
 
 
 @router.get("", response_model=list[RestricaoRead])

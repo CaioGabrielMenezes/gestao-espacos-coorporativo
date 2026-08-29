@@ -127,6 +127,104 @@ def calcular_indicadores(
     )
 
 
+class SalaNoMapa(BaseModel):
+    sala_id: int
+    identificacao: str
+    capacidade: int
+    tipo: str
+    acessibilidade: bool
+    equipe_id: int | None = None
+    equipe: str | None = None
+    pessoas: int = 0
+    ocupacao_percentual: float = 0.0
+    # Faixa textual da ocupação. Existe para a tela não depender só de cor:
+    # quem não distingue as cores, ou vê num projetor ruim, lê a faixa.
+    faixa: str
+
+
+class AndarNoMapa(BaseModel):
+    andar: int
+    salas: list[SalaNoMapa]
+    capacidade: int
+    pessoas: int
+    ocupacao_percentual: float
+
+
+class MapaPredio(BaseModel):
+    origem: str
+    execucao_id: int | None = None
+    andares: list[AndarNoMapa]
+
+
+def montar_mapa(
+    cenario: Cenario,
+    atribuicao: dict[int, int],
+    origem: str = "estado_atual",
+    execucao_id: int | None = None,
+) -> MapaPredio:
+    """Planta do prédio: andares, salas e quem ocupa cada uma."""
+    equipes = {e.id: e for e in cenario.equipes}
+    ocupante_por_sala = {sala_id: eid for eid, sala_id in atribuicao.items()}
+
+    andares = []
+    for andar in sorted({s.andar for s in cenario.salas}):
+        do_andar = sorted(
+            (s for s in cenario.salas if s.andar == andar),
+            key=lambda s: s.identificacao,
+        )
+
+        salas_mapa = []
+        for sala in do_andar:
+            equipe_id = ocupante_por_sala.get(sala.id)
+            equipe = equipes.get(equipe_id) if equipe_id is not None else None
+            pessoas = equipe.quantidade_funcionarios if equipe else 0
+            ocupacao = _pct(pessoas, sala.capacidade)
+
+            salas_mapa.append(
+                SalaNoMapa(
+                    sala_id=sala.id,
+                    identificacao=sala.identificacao,
+                    capacidade=sala.capacidade,
+                    tipo=sala.tipo,
+                    acessibilidade=sala.acessibilidade,
+                    equipe_id=equipe_id,
+                    equipe=equipe.nome if equipe else None,
+                    pessoas=pessoas,
+                    ocupacao_percentual=ocupacao,
+                    faixa=_faixa(equipe is not None, ocupacao),
+                )
+            )
+
+        capacidade = sum(s.capacidade for s in do_andar)
+        pessoas_andar = sum(s.pessoas for s in salas_mapa)
+        andares.append(
+            AndarNoMapa(
+                andar=andar,
+                salas=salas_mapa,
+                capacidade=capacidade,
+                pessoas=pessoas_andar,
+                ocupacao_percentual=_pct(pessoas_andar, capacidade),
+            )
+        )
+
+    return MapaPredio(origem=origem, execucao_id=execucao_id, andares=andares)
+
+
+def _faixa(ocupada: bool, ocupacao: float) -> str:
+    """Faixa de ocupação de uma sala.
+
+    'subutilizada' é a faixa que importa para o coordenador: a sala está em
+    uso, então não aparece como disponível, mas está desperdiçando espaço.
+    """
+    if not ocupada:
+        return "vazia"
+    if ocupacao < 50:
+        return "subutilizada"
+    if ocupacao < 85:
+        return "adequada"
+    return "cheia"
+
+
 def _por_andar(cenario: Cenario, atribuicao: dict[int, int]) -> list[IndicadoresAndar]:
     """Um registro por andar que tenha ao menos uma sala cadastrada.
 
