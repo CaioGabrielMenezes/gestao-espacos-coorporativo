@@ -310,6 +310,9 @@ def montar_cenario(db: Session) -> Cenario:
             tipo=s.tipo.value,
             recursos=frozenset(s.recursos or ()),
             acessibilidade=s.acessibilidade,
+            # A disponibilidade é guardada como JSON; o motor só usa a janela.
+            horario_inicio=(s.disponibilidade or {}).get("horario_inicio", "00:00"),
+            horario_fim=(s.disponibilidade or {}).get("horario_fim", "23:59"),
         )
         for s in db.scalars(select(Sala).order_by(Sala.id)).all()
     )
@@ -326,6 +329,7 @@ def montar_cenario(db: Session) -> Cenario:
             proximidade_desejada=tuple(e.proximidade_desejada or ()),
             prioridade=e.prioridade.value,
             sala_atual_id=e.sala_atual_id,
+            horario_necessario=e.horario_necessario or "",
         )
         for e in db.scalars(select(Equipe).order_by(Equipe.id)).all()
     )

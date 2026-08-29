@@ -23,6 +23,25 @@ class Veto:
     detalhe: str
 
 
+def faixa_horaria(horario: str) -> tuple[str, str] | None:
+    """Interpreta "HH:MM-HH:MM" e devolve (início, fim).
+
+    Devolve None para vazio ou formato irreconhecível: horário mal preenchido
+    no cadastro não deve impedir a alocação, apenas deixar de restringi-la.
+    Comparar as strings "HH:MM" diretamente já ordena corretamente, desde que
+    estejam com dois dígitos — o que o cadastro garante.
+    """
+    if not horario or "-" not in horario:
+        return None
+
+    inicio, _, fim = horario.partition("-")
+    inicio, fim = inicio.strip(), fim.strip()
+
+    if len(inicio) != 5 or len(fim) != 5 or ":" not in inicio or ":" not in fim:
+        return None
+    return inicio, fim
+
+
 class IndiceRestricoes:
     """Agrupa as restrições por alvo para consulta em tempo constante."""
 
@@ -102,6 +121,20 @@ def avaliar_veto(
             "equipamento obrigatório",
             f"{sala.identificacao} não possui: {', '.join(sorted(faltando))}",
         )
+
+    # Conflito de horário: a janela da sala precisa cobrir a faixa que a equipe
+    # precisa ocupar. É restrição dura porque uma sala fechada às 12h não
+    # abriga uma equipe que trabalha até as 18h — não é questão de preferência.
+    faixa_equipe = faixa_horaria(equipe.horario_necessario)
+    if faixa_equipe is not None:
+        inicio_equipe, fim_equipe = faixa_equipe
+        if sala.horario_inicio > inicio_equipe or sala.horario_fim < fim_equipe:
+            return Veto(
+                "disponibilidade de horário",
+                f"{sala.identificacao} está disponível das {sala.horario_inicio} "
+                f"às {sala.horario_fim}; a equipe precisa das {inicio_equipe} "
+                f"às {fim_equipe}",
+            )
 
     for r in indice.da_sala(sala.id, "sala_reservada_setor"):
         reservada_para = r.parametro.get("setor_id")

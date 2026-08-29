@@ -12,7 +12,7 @@ Trabalho da disciplina de **Qualidade e Testes de Sistemas Baseados em IA**
 |---|---|
 | **Backend** | Python 3.14 · FastAPI · SQLAlchemy · SQLite |
 | **Frontend** | React 19 · Vite · React Router |
-| **Testes** | 473 no backend (pytest) · 43 de componente (Vitest) · 12 end-to-end (Playwright) |
+| **Testes** | 489 no backend (pytest) · 46 de componente (Vitest) · 12 end-to-end (Playwright) |
 | **API** | 34 endpoints, documentados em `/docs` |
 
 ---
@@ -112,13 +112,23 @@ mais abaixo demonstra isso na prática.
 
 | Classe | Comportamento | Tipos |
 |---|---|---|
-| **Duras** | Filtram arestas. **Nunca** são violadas. | capacidade, capacidade mínima, andar permitido, acessibilidade, equipamento, sala reservada a setor |
+| **Duras** | Filtram arestas. **Nunca** são violadas. | capacidade, capacidade mínima, andar permitido, acessibilidade, equipamento, sala reservada a setor, **janela de horário** |
 | **De acoplamento** | Dependem de onde as *outras* equipes ficaram. Entram como penalidade na busca local; violações remanescentes são contadas na governança. | setores que não compartilham área, proximidade obrigatória |
 
 Um emparelhamento bipartido não consegue expressar restrições de acoplamento
 como filtro de aresta — daí a separação. O campo `restricoes_violadas` do
 registro de governança existe exatamente para tornar isso visível em vez de
 escondê-lo.
+
+**Conflito de horário** entra como restrição dura: a janela de disponibilidade
+da sala precisa cobrir a faixa que a equipe exige. Uma sala que fecha ao
+meio-dia não abriga uma equipe de período integral — não é questão de
+preferência. Nos dados de exemplo isso é visível: a equipe de Logística não
+pode ocupar a Sala 802, que só abre até as 12h.
+
+Os *dias* da semana são cadastrados na sala mas não restringem a alocação,
+porque as equipes declaram apenas faixa de horário, não dias — não haveria com
+o que comparar.
 
 ### Explicabilidade
 

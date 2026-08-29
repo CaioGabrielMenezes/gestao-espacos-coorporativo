@@ -18,6 +18,11 @@ class SalaEntrada:
     tipo: str = "reuniao"
     recursos: frozenset[str] = frozenset()
     acessibilidade: bool = False
+    # Janela em que a sala pode ser usada, no formato "HH:MM". O padrão é
+    # permissivo de propósito: um cenário que não declara disponibilidade não
+    # deve ganhar uma restrição que ninguém pediu.
+    horario_inicio: str = "00:00"
+    horario_fim: str = "23:59"
 
 
 @dataclass(frozen=True)
@@ -32,6 +37,9 @@ class EquipeEntrada:
     proximidade_desejada: tuple[int, ...] = ()
     prioridade: str = "media"
     sala_atual_id: int | None = None
+    # Faixa que a equipe precisa ocupar, no formato "HH:MM-HH:MM". Vazio
+    # significa "sem exigência de horário".
+    horario_necessario: str = ""
 
 
 @dataclass(frozen=True)

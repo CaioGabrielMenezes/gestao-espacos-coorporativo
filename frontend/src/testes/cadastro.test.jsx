@@ -87,6 +87,54 @@ describe('cadastro de salas', () => {
     renderizarComRotas(<Salas />)
     expect(await screen.findByRole('alert')).toHaveTextContent(/backend está rodando/)
   })
+
+  it('envia a janela de disponibilidade, que é restrição dura do motor', async () => {
+    const { chamadas } = mockarFetch({ '/api/salas': [] })
+    renderizarComRotas(<Salas />)
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Nova sala' }))
+    await userEvent.type(screen.getByLabelText(/Identificação/), 'Sala Manhã')
+    await userEvent.type(screen.getByLabelText(/Capacidade/), '10')
+
+    const ate = screen.getByLabelText(/Disponível até/)
+    await userEvent.clear(ate)
+    await userEvent.type(ate, '12:00')
+    await userEvent.click(screen.getByRole('button', { name: 'Criar sala' }))
+
+    await waitFor(() => {
+      const post = chamadas.find((c) => c.metodo === 'POST')
+      expect(JSON.parse(post.corpo).disponibilidade).toMatchObject({
+        horario_inicio: '08:00',
+        horario_fim: '12:00',
+      })
+    })
+  })
+
+  it('mostra a janela na listagem, para meio período ser visível de relance', async () => {
+    mockarFetch({
+      '/api/salas': [
+        salaFake({
+          disponibilidade: {
+            dias: ['seg'],
+            horario_inicio: '08:00',
+            horario_fim: '12:00',
+          },
+        }),
+      ],
+    })
+    renderizarComRotas(<Salas />)
+    expect(await screen.findByText('08:00–12:00')).toBeInTheDocument()
+  })
+
+  it('não quebra ao editar sala sem disponibilidade preenchida', async () => {
+    // Registro anterior ao campo existir: o formulário cai no padrão em vez
+    // de acessar propriedade de undefined.
+    mockarFetch({ '/api/salas': [salaFake({ disponibilidade: undefined })] })
+    renderizarComRotas(<Salas />)
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Editar' }))
+    expect(screen.getByLabelText(/Disponível a partir de/)).toHaveValue('08:00')
+  })
 })
 
 describe('cadastro de setores', () => {

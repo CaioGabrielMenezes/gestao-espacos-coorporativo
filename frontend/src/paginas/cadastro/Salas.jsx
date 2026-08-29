@@ -3,6 +3,7 @@ import { api } from '../../api'
 import {
   CampoCheckbox,
   CampoListaTexto,
+  CampoMultiSelect,
   CampoNumero,
   CampoSelect,
   CampoTexto,
@@ -23,6 +24,17 @@ const ANDARES = Array.from({ length: 9 }, (_, i) => ({
   rotulo: `Andar ${i + 1}`,
 }))
 
+const DIAS = ['seg', 'ter', 'qua', 'qui', 'sex', 'sab', 'dom'].map((d) => ({
+  valor: d,
+  rotulo: d,
+}))
+
+const DISPONIBILIDADE_PADRAO = {
+  dias: ['seg', 'ter', 'qua', 'qui', 'sex'],
+  horario_inicio: '08:00',
+  horario_fim: '18:00',
+}
+
 const NOVA = {
   identificacao: '',
   andar: 1,
@@ -30,6 +42,7 @@ const NOVA = {
   tipo: 'reuniao',
   recursos: [],
   acessibilidade: false,
+  disponibilidade: DISPONIBILIDADE_PADRAO,
 }
 
 export default function Salas() {
@@ -39,14 +52,21 @@ export default function Salas() {
 
   const campo = (nome) => (valor) => setForm((f) => ({ ...f, [nome]: valor }))
 
+  // Salas antigas podem não ter disponibilidade preenchida; cair no padrão
+  // evita que o formulário quebre ao editar um registro anterior.
+  const disponibilidade = form?.disponibilidade ?? DISPONIBILIDADE_PADRAO
+  const comporDisponibilidade = (chave) => (valor) =>
+    setForm((f) => ({
+      ...f,
+      disponibilidade: { ...(f.disponibilidade ?? DISPONIBILIDADE_PADRAO), [chave]: valor },
+    }))
+
   const salvar = useCallback(
     async (evento) => {
       evento.preventDefault()
       setSalvando(true)
       setErro(null)
       try {
-        // `disponibilidade` tem default no backend; não é pedida aqui para o
-        // formulário não virar um questionário de horários numa demonstração.
         const { id, ...dados } = form
         if (id) await api.atualizarSala(id, dados)
         else await api.criarSala(dados)
@@ -131,6 +151,26 @@ export default function Salas() {
                 valor={form.acessibilidade}
                 aoMudar={campo('acessibilidade')}
               />
+              {/* A janela é restrição dura: uma sala que fecha ao meio-dia não
+                  recebe equipe de período integral. */}
+              <CampoTexto
+                rotulo="Disponível a partir de"
+                valor={disponibilidade.horario_inicio}
+                aoMudar={comporDisponibilidade('horario_inicio')}
+                dica="Formato HH:MM. A equipe só entra se a janela cobrir o horário dela."
+              />
+              <CampoTexto
+                rotulo="Disponível até"
+                valor={disponibilidade.horario_fim}
+                aoMudar={comporDisponibilidade('horario_fim')}
+                dica="Formato HH:MM"
+              />
+              <CampoMultiSelect
+                rotulo="Dias disponíveis"
+                valores={disponibilidade.dias}
+                aoMudar={comporDisponibilidade('dias')}
+                opcoes={DIAS}
+              />
             </div>
             <button type="submit" className="primario" disabled={salvando}>
               {salvando ? 'Salvando…' : form.id ? 'Salvar alterações' : 'Criar sala'}
@@ -148,6 +188,7 @@ export default function Salas() {
             <th scope="col">Tipo</th>
             <th scope="col">Recursos</th>
             <th scope="col">Acessível</th>
+            <th scope="col">Disponível</th>
             <th scope="col">Ações</th>
           </tr>
         </thead>
@@ -160,6 +201,11 @@ export default function Salas() {
               <td>{sala.tipo}</td>
               <td>{sala.recursos.join(', ') || '—'}</td>
               <td>{sala.acessibilidade ? 'Sim' : 'Não'}</td>
+              <td>
+                {sala.disponibilidade
+                  ? `${sala.disponibilidade.horario_inicio}–${sala.disponibilidade.horario_fim}`
+                  : '—'}
+              </td>
               <td>
                 <AcoesLinha
                   aoEditar={() => setForm(sala)}

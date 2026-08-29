@@ -58,6 +58,10 @@ ENCAMINHAMENTOS = {
         "instalar o equipamento faltante numa sala compatível ou rever o requisito"
     ),
     "sala reservada a setor": "rever a reserva da sala para o setor",
+    "disponibilidade de horário": (
+        "ampliar a janela de disponibilidade de uma sala compatível ou rever o "
+        "horário exigido pela equipe"
+    ),
 }
 
 
