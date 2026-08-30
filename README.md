@@ -17,6 +17,31 @@ Trabalho da disciplina de **Qualidade e Testes de Sistemas Baseados em IA**
 
 ---
 
+## Verificar tudo de uma vez
+
+Depois de instalar as dependências (uma vez só, veja abaixo), um comando roda
+as três suítes em sequência e para na primeira falha:
+
+```bash
+cd frontend && npm run verificar
+```
+
+```
+━━ Backend (pytest) ━━            489 passed
+━━ Frontend (vitest) ━━            56 passed
+━━ End-to-end (Playwright) ━━      14 passed
+✓ Backend, frontend e end-to-end: tudo verde.
+```
+
+Ele descobre sozinho o caminho do Python conforme o sistema operacional e sobe
+backend e frontend para a etapa end-to-end — nada precisa estar rodando antes.
+
+**Atalho mais rápido:** `npm run e2e` sozinho sobe as duas pontas e exercita o
+fluxo completo da demonstração em ~30s. É a verificação mais barata de que o
+sistema funciona de ponta a ponta, mas **não** roda as suítes unitárias.
+
+---
+
 ## Como rodar
 
 Precisa de **Python 3.12+** e **Node 20+**.
@@ -48,6 +73,9 @@ Abre em <http://localhost:5173>.
 ### Testes
 
 ```bash
+# tudo de uma vez (backend + componentes + end-to-end)
+cd frontend && npm run verificar
+
 # backend — inclui os testes metamórficos
 cd backend && .venv/Scripts/python -m pytest
 

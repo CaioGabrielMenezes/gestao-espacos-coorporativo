@@ -10,7 +10,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:cobertura": "vitest run --coverage",
-    "e2e": "playwright test"
+    "e2e": "playwright test",
+    "verificar": "node scripts/verificar.mjs"
   },
   "dependencies": {
     "react": "^19.2.0",
